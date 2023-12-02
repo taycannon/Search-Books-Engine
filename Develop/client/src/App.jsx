@@ -1,15 +1,32 @@
 import React from 'react';
-import { ApolloProvider, ApolloClient, InMemoryCache } from '@apollo/client';
-import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
-import Navbar from './components/Navbar';
+import { BrowserRouter as Router, Switch, Route } from 'react-router-dom';
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  createHttpLink,
+} from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 import SearchBooks from './pages/SearchBooks';
 import SavedBooks from './pages/SavedBooks';
-import SignupForm from './components/SignupForm';
-import LoginForm from './components/LoginForm';
+import Navbar from './components/Navbar';
 
-// Created the Apollo Client
+const httpLink = createHttpLink({
+  uri: '/graphql',
+});
+
+const authLink = setContext((_, { headers }) => {
+  const token = localStorage.getItem('id_token');
+  return {
+    headers: {
+      ...headers,
+      authorization: token ? `Bearer ${token}` : '',
+    },
+  };
+});
+
 const client = new ApolloClient({
-  uri: '/graphql', 
+  link: authLink.concat(httpLink),
   cache: new InMemoryCache(),
 });
 
@@ -17,15 +34,14 @@ function App() {
   return (
     <ApolloProvider client={client}>
       <Router>
-        <div>
+        <>
           <Navbar />
-          <Routes>
-            <Route path="/" element={<SearchBooks />} />
-            <Route path="/saved" element={<SavedBooks />} />
-            <Route path="/signup" element={<SignupForm />} />
-            <Route path="/login" element={<LoginForm />} />
-          </Routes>
-        </div>
+            <Switch>
+              <Route exact path='/' component={SearchBooks} />
+              <Route exact path='/saved' component={SavedBooks} />
+              <Route render={() => <h1 className='display-2'>Wrong page!</h1>} />
+            </Switch>
+        </>
       </Router>
     </ApolloProvider>
   );
